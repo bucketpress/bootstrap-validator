@@ -77,6 +77,7 @@
     delay: 500,
     html: false,
     disable: true,
+    validating: true,
     focus: true,
     custom: {},
     errors: {
@@ -85,7 +86,8 @@
     },
     feedback: {
       success: 'glyphicon-ok',
-      error: 'glyphicon-remove'
+      error: 'glyphicon-remove',
+      validating: 'glyphicon-option-horizontal'
     }
   }
 
@@ -138,9 +140,14 @@
     if (e.isDefaultPrevented()) return
 
     var self = this
+    
+    self.showValidating($el);
+    if (self.options.validating) self.toggleSubmit(true)
 
     return this.runValidators($el).done(function (errors) {
       $el.data('bs.validator.errors', errors)
+      
+      if (self.options.validating) self.toggleSubmit(false)
 
       errors.length
         ? deferErrors ? self.defer($el, self.showErrors) : self.showErrors($el)
@@ -238,7 +245,17 @@
     $('html, body').animate({scrollTop: $input.offset().top - Validator.FOCUS_OFFSET}, 250)
     $input.focus()
   }
+  
+  Validator.prototype.showValidating = function ($el) {
+    var $group = $el.closest('.form-group')
+    var $feedback = $group.find('.form-control-feedback')
 
+    $group.hasClass('has-feedback')
+      && $feedback.removeClass(this.options.feedback.error)
+	    && $feedback.removeClass(this.options.feedback.success)
+	    && $feedback.addClass(this.options.feedback.validating)
+  }
+  
   Validator.prototype.showErrors = function ($el) {
     var method = this.options.html ? 'html' : 'text'
     var errors = $el.data('bs.validator.errors')
@@ -257,6 +274,7 @@
     $group.addClass('has-error has-danger')
 
     $group.hasClass('has-feedback')
+      && $feedback.removeClass(this.options.feedback.validating)
       && $feedback.removeClass(this.options.feedback.success)
       && $feedback.addClass(this.options.feedback.error)
       && $group.removeClass('has-success')
@@ -271,6 +289,7 @@
     $group.removeClass('has-error has-danger has-success')
 
     $group.hasClass('has-feedback')
+      && $feedback.removeClass(this.options.feedback.validating)
       && $feedback.removeClass(this.options.feedback.error)
       && $feedback.removeClass(this.options.feedback.success)
       && getValue($el)
@@ -300,9 +319,9 @@
     if (this.isIncomplete() || this.hasErrors()) e.preventDefault()
   }
 
-  Validator.prototype.toggleSubmit = function () {
+  Validator.prototype.toggleSubmit = function (state) {
     if (!this.options.disable) return
-    this.$btn.toggleClass('disabled', this.isIncomplete() || this.hasErrors())
+    this.$btn.toggleClass('disabled', this.isIncomplete() || this.hasErrors() || state)
   }
 
   Validator.prototype.defer = function ($el, callback) {
